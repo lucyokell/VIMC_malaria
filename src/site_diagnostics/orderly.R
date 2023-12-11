@@ -3,8 +3,6 @@ orderly2::orderly_parameters(iso3c = NULL,
                              description = NULL,
                              site_name = NULL,
                              ur = NULL,
-                             population = NULL,
-                             burnin = NULL,
                              parameter_draw = NULL,
                              scenario = NULL,
                              quick_run = NULL)
@@ -68,13 +66,6 @@ orderly2::orderly_dependency("process_inputs",
                                         "latest(parameter:iso3c == this:iso3c)",
                                         c(site_file.rds = "site_file.rds"))
 
-orderly2::orderly_dependency("process_inputs",
-                                         "latest(parameter:iso3c == this:iso3c)",
-                                         c(coverage_input.rds = "coverage_input.rds"))
-
-orderly2::orderly_dependency("process_inputs",
-                                         "latest(parameter:iso3c == this:iso3c)",
-                                         c(mort_rate_input.rds = "mort_rate_input.rds"))
 site_data<- readRDS('site_file.rds')
 coverage_data<- readRDS('coverage_input.rds')
 mort<- readRDS('mort_rate_input.rds')
@@ -102,7 +93,6 @@ agg_output<- processed_output |>
   summarise(cases = sum(cases),
             dalys = sum(dalys),
             deaths = sum(deaths),
-            pre_scaled_cases = sum(pre_scaled_cases),
             cohort_size = sum(cohort_size)) |>
   mutate(mortality = deaths/cohort_size,
          clinical = cases/ cohort_size,

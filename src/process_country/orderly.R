@@ -123,8 +123,6 @@ dt[, `:=` (
 )]
 
 
-
-
 # # scale outputs based on cases from WMR from 2000-2020
 # # first sum cases by year (across all ages) in model output and compare
 pre_scale<- dt |>

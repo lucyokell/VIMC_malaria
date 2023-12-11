@@ -48,12 +48,12 @@ maps<- make_parameter_maps(
 # deduplicate
 
 site_map<- remove_duplicate_reports(report_name = 'process_site',
-                                    parameter_map = site_map, day= 20231203)
+                                    parameter_map = site_map, day= 20231208)
 
 # check that the preceding report has completed before you launch next report in chronology
-site_map<- generate_parameter_map_for_next_report(report_name = 'process_site',
+site_map<- generate_parameter_map_for_next_report(report_name = 'launch_models',
                                                   parameter_map = maps$site_map, 
-                                                  day= 20231203)
+                                                  day= 20231208)
 
 # 
 # 
@@ -66,7 +66,7 @@ site_map<- generate_parameter_map_for_next_report(report_name = 'process_site',
 #                                                   parameter_map = country_map)
 
 site_map<- maps$site_map
-sites<- purrr::map(.x = c(2400:nrow(site_map)), .f= ~ site_map[.x,])
+sites<- purrr::map(.x = c(1:nrow(site_map)), .f= ~ site_map[.x,])
 
 country_map<- maps$country_map
 countries<- purrr::map(.x = 1:nrow(country_map), .f= ~ country_map[.x,])
@@ -123,17 +123,17 @@ for (pkg in pp){
 lapply(
   sites,
   run_report,
-  report_name = 'site_diagnostics',
+  report_name = 'process_site',
   path = dir
 )
 
 
 # 
 # # or launch on cluster
-diagsmore<- obj$lapply(
+pp<- obj$lapply(
   sites,
   run_report,
-  report_name = 'site_diagnostics',
+  report_name = 'process_site',
   path = dir
 )
 
