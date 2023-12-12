@@ -97,18 +97,6 @@ prevalence_diagnostic<- function(site){
 
 
 
-
-# interventions ----------------------------------------------------------------
-# plot_interventions_combined(
-#   interventions = site$interventions,
-#   population = site$population,
-#   group_var = c("country", "name_1"),
-#   include = c("itn_use", "itn_input_dist", "tx_cov", "smc_cov", "pmc_cov"),
-#   labels = c("ITN usage", "ITN model input", "Treatment","SMC", "PMC")
-# )
-
-
-
 # population  ------------------------------------------------------------------
 
 population_diagnostic<- function(site){

@@ -1,4 +1,4 @@
-# diagnostics for a single site  --------------------------------------------
+# diagnostic functions  --------------------------------------------------------
 library(ggplot2)
 library(wesanderson)
 library(ggforce)
@@ -8,16 +8,119 @@ library(scales)
 library(wesanderson)
 library(tidyr)
 
-
 plotting_theme<- theme_bw(base_size = 12) +
   theme( legend.position = 'bottom',
          strip.text.x = element_text(size = rel(0.8)),
          axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.1), 
-         #axis.text.y = element_blank(),
          text = element_text(family= 'Arial Narrow'),
          axis.ticks.y= element_blank(), 
          panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
 
+#' Extract a single site-input from a country site file
+#'
+#' @param site_file Country site file
+#' @param index Index row from site_file$sites
+#'
+#' @return Single site
+#' @export
+extract_site <- function(site_file, site_name, ur){
+  
+  sites<- data.table(site_file$sites)
+  Encoding(sites$name_1) <- "UTF-8"
+  
+  sites$name_1<- iconv(sites$name_1, from="UTF-8", to="ASCII//TRANSLIT")
+  
+  index_site <- sites[name_1== site_name & urban_rural== ur]
+  
+  to_mod <- c("sites", "interventions", "pyrethroid_resistance", "population",
+              "vectors", "seasonality", "prevalence", "eir")
+  
+  site <- site_file
+  
+  for(level in to_mod){
+    mod<- site[[level]]
+    Encoding(mod$name_1) <- "UTF-8"
+    
+    mod$name_1<- iconv(mod$name_1, from="UTF-8", to="ASCII//TRANSLIT")
+    
+    mc <- intersect(colnames(index_site), colnames(mod))
+    site[[level]] <- dplyr::left_join(index_site, mod, by = mc)
+  }
+  return(site)
+}
+format_for_report<- function(site_data, vimc_input, plotting_input, intvn_output, processed_output){
+  
+  # read in inputs to pass into report as parameters
+  coverage_data<- vimc_input$coverage_input
+  mortality_input<- vimc_input$mort_rate_input
+  model_input<- plotting_input$vaccine_plot_input
+  raw_output<- plotting_input$raw_model_output
+  
+  # bind intervention and baseline outputs together
+  processed_output<- rbind(baseline_output, intvn_output, fill = T)
+  processed_output<- data.table(processed_output)
+  processed_output<- processed_output[scenario!= TRUE]
+  
+  
+  site_data<- extract_site(site_file = site_data, site_name = site_name, ur = ur)
+  
+  
+  # make summary output for all ages
+  agg_output<- processed_output |>
+    group_by(year, scenario) |>
+    summarise(cases = sum(cases),
+              dalys = sum(dalys),
+              deaths = sum(deaths),
+              cohort_size = sum(cohort_size)) |>
+    mutate(mortality = deaths/cohort_size,
+           clinical = cases/ cohort_size,
+           dalys_pp = dalys/ cohort_size) 
+  
+  
+  key_outcomes<-pull_outcomes_averted_per_100k_vacc(raw_output, processed_output)
+  
+  burnin<- unique(raw_output$burnin)
+  population<- unique(raw_output$population)
+  
+  message('read inputs successfully')
+  
+  return(list('site_data' = site_data, 
+              'agg_output' = agg_output,
+              'key_outcomes' = key_outcomes,
+              'processed_output'= processed_output,
+              'model_input' = model_input,
+              'burnin' = burnin,
+              'population' = population,
+              'raw_output' = raw_output,
+              'coverage_data' = coverage_data))
+} 
+plot_vaccine_coverage<- function(site, output){
+  # pull in vaccine forecast
+  plotting_theme<- theme_bw(base_size = 12) +
+    theme( legend.position = 'bottom',
+           strip.text.x = element_text(size = rel(0.8)),
+           axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.1), 
+           #axis.text.y = element_blank(),
+           text = element_text(family= 'Arial Narrow'),
+           axis.ticks.y= element_blank(), 
+           panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
+  
+  intvns<- melt(data.table(site$interventions), 
+                measure.vars = c('rtss_coverage', 'rtss_booster_coverage', 'r21_coverage', 'r21_booster_coverage'))
+  
+  p<- ggplot(data= intvns, mapping= aes(x= year, y= value, color= variable))+
+    geom_line()+
+    plotting_theme +
+    labs(y= 'Coverage value', x= 'Year', title= 'Vaccine coverage over time during model run',
+         subtitle = paste0('Vaccine type: ', unique(intvns$vaccine), 
+                           ' site: ', site_name, 
+                           ' ', ur, 
+                           ', model run: ', description, 
+                           ' projection: ', scenario))
+  
+  
+  print(p)
+}
 population_diagnostic_model<- function(dt, pg, intro_yr, rows= 5, cols = 5, summary =F){
   
   if (summary == T){
@@ -142,18 +245,18 @@ mortality_diagnostic<- function(dt, pg, intro_yr, cols= 5, rows= 5, summary= F){
       plotting_theme
     
   }else{
-  p<- ggplot(data= dt, mapping = aes(x= year, y= deaths, color= scenario, fill= scenario))+
-    geom_line()  +
-    geom_vline(xintercept= intro_yr, linetype= "dotted") +
-    facet_wrap_paginate(~age, scales = 'free', ncol= cols, nrow= rows, page = pg) +
-    labs(x= 'Time (in years)', 
-         y= 'Deaths', 
-         title= paste0('Deaths over time: ', unique(dt$site_name), ', ', description),
-         color= 'Scenario', 
-         fill= 'Scenario') +
-    scale_color_manual(values= wes_palette('Royal2', n= 2)) +
-    scale_fill_manual(values= wes_palette('Royal2', n= 2)) +
-    plotting_theme
+    p<- ggplot(data= dt, mapping = aes(x= year, y= deaths, color= scenario, fill= scenario))+
+      geom_line()  +
+      geom_vline(xintercept= intro_yr, linetype= "dotted") +
+      facet_wrap_paginate(~age, scales = 'free', ncol= cols, nrow= rows, page = pg) +
+      labs(x= 'Time (in years)', 
+           y= 'Deaths', 
+           title= paste0('Deaths over time: ', unique(dt$site_name), ', ', description),
+           color= 'Scenario', 
+           fill= 'Scenario') +
+      scale_color_manual(values= wes_palette('Royal2', n= 2)) +
+      scale_fill_manual(values= wes_palette('Royal2', n= 2)) +
+      plotting_theme
   }
   return(p)
   
@@ -175,19 +278,19 @@ mortality_rate_diagnostic<- function(dt, pg, intro_yr, rows= 5, cols= 5, summary
     
     
   }else{
-  
-  p<- ggplot(data= dt, mapping = aes(x= year, y= mortality, color= scenario, fill= scenario))+
-    geom_line() +
-    geom_vline(xintercept= 2023, linetype= "dotted") +
-    facet_wrap_paginate(~age, ncol= cols, nrow= rows, page= pg) +
-    labs(x= 'Time (in years)',
-         y= 'Mortality rate', 
-         title= paste0('Mortality rate over time: ', unique(dt$site_name)),
-         color= 'Scenario', 
-         fill= 'Scenario') +
-    scale_color_manual(values= wes_palette('Royal2', n= 2)) +
-    scale_fill_manual(values= wes_palette('Royal2', n= 2)) +
-    plotting_theme
+    
+    p<- ggplot(data= dt, mapping = aes(x= year, y= mortality, color= scenario, fill= scenario))+
+      geom_line() +
+      geom_vline(xintercept= 2023, linetype= "dotted") +
+      facet_wrap_paginate(~age, ncol= cols, nrow= rows, page= pg) +
+      labs(x= 'Time (in years)',
+           y= 'Mortality rate', 
+           title= paste0('Mortality rate over time: ', unique(dt$site_name)),
+           color= 'Scenario', 
+           fill= 'Scenario') +
+      scale_color_manual(values= wes_palette('Royal2', n= 2)) +
+      scale_fill_manual(values= wes_palette('Royal2', n= 2)) +
+      plotting_theme
   }
   return(p)
   
@@ -208,16 +311,16 @@ daly_diagnostic<- function(dt, pg, intro_yr, rows= 5, cols =5, summary = F){
       plotting_theme
     
   }else{
-  p<- ggplot(data= dt, mapping = aes(x= year, y= dalys, color= scenario, fill= scenario))+
-    geom_line()  +
-    facet_wrap_paginate(~age,scales = 'free', ncol= cols, nrow= rows, page = pg) +
-    geom_vline(xintercept= intro_yr, linetype= "dotted") +
-    labs(x= 'Time (in years)', y= 'DALYs', title= paste0('DALYs over time: ', unique(dt$site_name), ', ', description),
-         color= 'Scenario', fill= 'Scenario') +
-    theme_minimal()+
-    scale_color_manual(values= wes_palette('Royal2', n= 2)) +
-    scale_fill_manual(values= wes_palette('Royal2', n= 2)) +
-    plotting_theme
+    p<- ggplot(data= dt, mapping = aes(x= year, y= dalys, color= scenario, fill= scenario))+
+      geom_line()  +
+      facet_wrap_paginate(~age,scales = 'free', ncol= cols, nrow= rows, page = pg) +
+      geom_vline(xintercept= intro_yr, linetype= "dotted") +
+      labs(x= 'Time (in years)', y= 'DALYs', title= paste0('DALYs over time: ', unique(dt$site_name), ', ', description),
+           color= 'Scenario', fill= 'Scenario') +
+      theme_minimal()+
+      scale_color_manual(values= wes_palette('Royal2', n= 2)) +
+      scale_fill_manual(values= wes_palette('Royal2', n= 2)) +
+      plotting_theme
   }
   return(p)
 }
