@@ -1,9 +1,9 @@
 # process inputs for all sites -------------------------------------------------
 orderly2::orderly_parameters(iso3c = NULL)
 
-library(data.table)
-library(countrycode)
-library(dplyr)
+pkgs <- c( 'data.table', 'countrycode',  'dplyr')
+invisible(lapply(pkgs, library, character.only = TRUE))
+
 # outputs from this report  ----------------------------------------------------
 orderly2::orderly_artefact('Site file input', 'site_file.rds')
 orderly2::orderly_artefact('VIMC input', 'vimc_input.rds')

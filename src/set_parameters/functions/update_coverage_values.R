@@ -3,8 +3,22 @@
 #' @param   site             site data file
 #' @param   coverage_data    VIMC vaccine forecast for site of interest
 #' @returns site file with additional variables 'rtss_coverage', 'rtss_booster_coverage', 'r21_coverage', 'r21_booster_coverage'
-
-update_coverage_values<- function(site, coverage_data, scenario){
+update_coverage_values<- function(site, coverage_data, scenario_name){
+  
+  if(scenario_name == 'no-vaccination'){
+    
+    coverage_data<- coverage_data |>           # pull another projection for data table structure and fill with zeroes
+      filter(country_code == iso3c) |>
+      filter(scenario == 'malaria-r3-r4-default') |>
+      mutate(coverage = 0)  |>
+      mutate(scenario = 'no-vaccination') 
+    
+  }else{
+    
+    coverage_data<- coverage_data |>           
+      filter(country_code == iso3c) |>
+      filter(scenario == scenario_name)
+  }
   
   dt<- coverage_data |>
     rename(vaccine_name = vaccine) |>
@@ -15,11 +29,8 @@ update_coverage_values<- function(site, coverage_data, scenario){
   dt[is.na(vaccine), vaccine := 'R21']
   
   vaccine_val<- unique(dt$vaccine)
-  # can only implement one vaccine at a time in a scenario
-  
-  if (length(vaccine_val) > 1){
-    stop('Can only implement one type of vaccine at a time. Check vaccine inputs.')
-  }
+
+  if (length(vaccine_val) > 1){ stop('Can only implement one type of vaccine at a time. Check vaccine inputs.') }
   
   dt<- dcast(data.table(dt), 
              year + vaccine ~ vaccine_name, 
@@ -40,14 +51,14 @@ update_coverage_values<- function(site, coverage_data, scenario){
            r21_booster_coverage = R4) 
   
   # transform booster coverage into value per person according to coverage in the preceding year
-  # for (yr in unique(dt$year)){
-  #   
-  #   dt[year== yr & rtss_coverage!= 0 & rtss_booster_coverage!= 0, 
-  #      rtss_booster_coverage := rtss_booster_coverage / dt[year == yr- 1, rtss_coverage]]
-  #   
-  #   dt[year== yr & r21_coverage!= 0 & r21_booster_coverage!= 0, 
-  #      r21_booster_coverage := r21_booster_coverage / dt[year == yr- 1, r21_coverage]]
-  # }
+  for (yr in unique(dt$year)){
+
+    dt[year== yr & rtss_coverage!= 0 & rtss_booster_coverage!= 0,
+       rtss_booster_coverage := rtss_booster_coverage / dt[year == yr- 1, rtss_coverage]]
+
+    dt[year== yr & r21_coverage!= 0 & r21_booster_coverage!= 0,
+       r21_booster_coverage := r21_booster_coverage / dt[year == yr- 1, r21_coverage]]
+  }
 
 
   
@@ -66,7 +77,7 @@ update_coverage_values<- function(site, coverage_data, scenario){
     site$interventions$scenario_type<- 'bluesky'
   }
   
-  if(scenario == 'malaria-r3-r4-default' | scenario == 'malaria-rts3-rts4-default'){
+  if(scenario_name == 'malaria-r3-r4-default' | scenario_name == 'malaria-rts3-rts4-default'){
     
     site$interventions$scenario_type<- 'routine'
     

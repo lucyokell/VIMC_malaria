@@ -1,8 +1,9 @@
 #' Extract a single site-input from a country site file
 #'
-#' @param site_file Country site file
-#' @param index Index row from site_file$sites
-#'
+#' @param site_file  Country site file
+#' @param site_name  name of site to extract
+#' @param urbanicity urbanicity of site to extract
+#' 
 #' @return Single site
 #' @export
 extract_site <- function(site_file, site_name, ur){
@@ -28,5 +29,6 @@ extract_site <- function(site_file, site_name, ur){
     mc <- intersect(colnames(index_site), colnames(mod))
     site[[level]] <- dplyr::left_join(index_site, mod, by = mc)
   }
+  
   return(site)
 }
