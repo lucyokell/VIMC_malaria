@@ -27,13 +27,13 @@ dir<- getwd()
 ################################################################################
 # 1 prepare and save inputs
 # unless inputs change, this only needs to be run once for all countries
-for (iso3c in iso3cs){
-
-  orderly2::orderly_run(
-    'process_inputs',
-    list(iso3c = iso3c),
-    root = dir)
-}
+# for (iso3c in iso3cs){
+# 
+#   orderly2::orderly_run(
+#     'process_inputs',
+#     list(iso3c = iso3c),
+#     root = dir)
+# }
 
 # PARAMETERS TO CHANGE FOR REPORTS ---------------------------------------------
 maps<- make_parameter_maps(
