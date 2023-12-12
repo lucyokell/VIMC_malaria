@@ -8,6 +8,8 @@ path <-"N:/Lydia/VIMC_malaria/archive/process_country"
 filenames <-list.files(path)
 library(purrr)
 library(dplyr)
+library(ggplot2)
+
 date = as.numeric(substring(filenames,1,8))
 filenames <- filenames[which(date>20231130)]
 
