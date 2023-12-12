@@ -7,7 +7,6 @@ orderly2::orderly_parameters(iso3c = NULL,
                              scenario = NULL,
                              quick_run = NULL)
 
-
 library(postie)
 library(dplyr)
 library(data.table)
@@ -17,18 +16,16 @@ source('remove_zero_eirs.R')
 orderly2::orderly_description('Process model outputs')
 orderly2::orderly_artefact('Processed output', 'country_output.rds')
 
-
 # read in model outputs for all sites in country
-orderly2::orderly_dependency("process_inputs",
-                             "latest(parameter:iso3c == this:iso3c)",
-                             c(site_file.rds = "site_file.rds"))
-
+orderly2::orderly_dependency("process_inputs", "latest(parameter:iso3c == this:iso3c)", c(site_file.rds = "site_file.rds"))
+orderly2::orderly_dependency("process_inputs","latest(parameter:iso3c == this:iso3c)", c(vimc_input.rds = "vimc_input.rds"))
 
 site_data <- readRDS('site_file.rds')
+vimc_input<- readRDS('vimc_input.rds')
+pop<- vimc_input$population_input_single_yr
 
 
 sites<- site_data$sites
-
 sites<- remove_zero_eirs(iso3c, sites, site_data$eir)
 
 Encoding(sites$name_1) <- "UTF-8"
@@ -79,13 +76,6 @@ for (i in 1:nrow(sites)) {
     }
 }
 
-
-orderly2::orderly_dependency("process_inputs",
-                             "latest(parameter:iso3c == this:iso3c)",
-                             c(population_input_single_yr.rds = "population_input_single_yr.rds"))
-
-pop<- readRDS("population_input_single_yr.rds")
-
 # sum cases up to country level ------------------------------------------------
 dt<- copy(output)
 dt<- data.table(dt)
@@ -98,18 +88,13 @@ by = c('age', 'year', 'scenario')]
 
 
 # remove cohort size, because for sites with some unmodelled locations, sum of cohort size != national population
-
 dt<- dt |> 
   select(-cohort_size)
-
 dt <- unique(dt, by = c('age', 'year', 'scenario'))
-
 pop<- pop |>
   rename(age = age_from,
          cohort_size = value) |>
   select(year, age, cohort_size)
-
-
 dt<- merge(dt, pop, by =c('age', 'year'))
 
 
