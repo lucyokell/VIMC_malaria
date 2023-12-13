@@ -76,3 +76,77 @@ ggplot(cres |> filter(scenario!='no-vaccination'), aes(y=scenario, x=prop_cases_
   geom_bar(stat = "identity") +
   facet_wrap(~iso) + #, scales = "free") +
   theme_bw()
+
+
+dt<- cres |> filter(scenario!= 'no-vaccination')
+check_bluesky_routine_order<- function(dt){
+
+  full_rerun<- data.table()
+  for (cty in (unique(dt$iso))){
+    subset<- dt |>
+      filter(iso == cty) |>
+      data.table()
+    
+    if(subset[scenario== 'malaria-rts3-rts4-bluesky', prop_cases_averted]
+       < subset[scenario== 'malaria-rts3-rts4-default', prop_cases_averted]){
+      
+      message(paste0('malaria-rts3-rts4-bluesky is less than malaria-rts3-rts4-default for ', cty))
+      
+      rerun<- data.table('scenarios' = c('malaria-rts3-rts4-bluesky', 'malaria-rts3-rts4-default'), 'iso3c' = cty)
+      full_rerun<- rbind(rerun, full_rerun)
+    }
+    
+    if(subset[scenario== 'malaria-rts3-bluesky', prop_cases_averted]
+       < subset[scenario== 'malaria-rts3-default', prop_cases_averted]){
+      
+      message(paste0('malaria-rts3-bluesky is less than malaria-rts3-default for ', cty))
+      
+      rerun<- data.table('scenarios' = c('malaria-rts3-bluesky', 'malaria-rts3-default'), 'iso3c' = cty)
+      full_rerun<- rbind(rerun, full_rerun)
+      
+    }
+  }
+  
+  return(full_rerun)
+}
+check_three_four_dose_order<- function(dt){
+  
+  
+  full_rerun<- data.table()
+  for (cty in (unique(dt$iso))){
+    
+    subset<- dt |>
+      filter(iso == cty) |>
+      data.table()
+    
+    if(subset[scenario== 'malaria-rts3-rts4-bluesky', prop_cases_averted]
+       < subset[scenario== 'malaria-rts3-bluesky', prop_cases_averted]){
+      
+      message(paste0('malaria-rts3-rts4-bluesky is less than malaria-rts3-bluesky for ', cty))
+      
+      rerun<- data.table('scenarios' = c('malaria-rts3-rts4-bluesky', 'malaria-rts3-bluesky'), 'iso3c' = cty)
+      full_rerun<- rbind(rerun, full_rerun)
+    }
+    
+    if(subset[scenario== 'malaria-r3-r4-default', prop_cases_averted]
+       < subset[scenario== 'malaria-r3-default', prop_cases_averted]){
+      
+      message(paste0('malaria-r3-r4-default is less than malaria-r3-default for ', cty))
+      
+      rerun<- data.table('scenarios' = c('malaria-r3-r4-default', 'malaria-r3-default'), 'iso3c' = cty)
+      full_rerun<- rbind(rerun, full_rerun)
+    }
+    
+    if(subset[scenario== 'malaria-rts3-rts4-default', prop_cases_averted]
+       < subset[scenario== 'malaria-rts3-default', prop_cases_averted]){
+      
+      message(paste0('malaria-rts3-rts4-default is less than malaria-rts3-default for ', cty))
+      
+      rerun<- data.table('scenarios' = c('malaria-rts3-rts4-default', 'malaria-rts3-default'), 'iso3c' = cty)
+      full_rerun<- rbind(rerun, full_rerun)
+    }
+  }
+  return(full_rerun)
+}
+rerun<- check_bluesky_routine_order(dt)
+rerun2<- check_three_four_dose_order(dt)
