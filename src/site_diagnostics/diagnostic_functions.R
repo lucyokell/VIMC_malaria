@@ -61,7 +61,7 @@ format_for_report<- function(site_data, vimc_input, plotting_input, intvn_output
   processed_output<- data.table(processed_output)
   processed_output<- processed_output[scenario!= TRUE]
   
-  
+  # extract site of interest
   site_data<- extract_site(site_file = site_data, site_name = site_name, ur = ur)
   
   

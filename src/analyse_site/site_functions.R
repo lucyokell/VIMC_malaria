@@ -70,7 +70,7 @@ check_eir<- function(site){
   }
 }
 
-parameterize_stochastic_run<- function(parameter_draw){
+parameterize_stochastic_run<- function(params, parameter_draw){
   
   if (parameter_draw > 0){
     

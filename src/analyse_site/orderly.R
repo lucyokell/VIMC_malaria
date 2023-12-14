@@ -1,11 +1,11 @@
 # analyse site  ----------------------------------------------------------------
-orderly2::orderly_parameters(iso3c = 'NGA', 
-                             site_name = 'Lagos',
-                             ur = 'urban',
-                             scenario = 'malaria-rts3-rts4-default',
-                             quick_run = TRUE,
-                             parameter_draw = 0,
-                             description =  'refactor_debug')
+orderly2::orderly_parameters(iso3c = NULL, 
+                             site_name = NULL,
+                             ur = NULL,
+                             scenario = NULL,
+                             quick_run = NULL,
+                             parameter_draw = NULL,
+                             description =  NULL)
 
 
 orderly2::orderly_description('Analyze vaccine impact at the site level')
@@ -66,7 +66,7 @@ params$age_group_rendering_min_ages = more_params$min_ages
 params$age_group_rendering_max_ages = more_params$max_ages
 
 # if this is a stochastic run, set parameter draw ------------------------------
-params<- parameterize_stochastic_run(parameter_draw)
+params<- parameterize_stochastic_run(params, parameter_draw)
 
 inputs <- list(
   'param_list' = params,
@@ -110,7 +110,6 @@ saveRDS(model, 'model_output.rds')
 # process site -----------------------------------------------------------------
 # calculate rates
 raw_output<- drop_burnin(model, burnin= more_params$burnin* 365)
-
 
 output <- postie::get_rates(
   raw_output,

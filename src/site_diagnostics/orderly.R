@@ -58,6 +58,9 @@ plotting_input<- readRDS('plotting_input.rds')
 intvn_output<- readRDS('intvn_output.rds')
 baseline_output<- readRDS('baseline_output.rds')
 
+
+report_input<- format_for_report(site_data, vimc_input, plotting_input, intvn_output, processed_output)
+
 # render report
 rmarkdown::render(input= 'diagnostic_report.Rmd',
                   output_file = 'site_diagnostic_report',

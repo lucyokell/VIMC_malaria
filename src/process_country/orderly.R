@@ -6,12 +6,11 @@ orderly2::orderly_parameters(iso3c = NULL,
                              parameter_draw = NULL,
                              scenario = NULL,
                              quick_run = NULL)
-
 library(postie)
 library(dplyr)
 library(data.table)
 
-source('remove_zero_eirs.R')
+source('country_functions.R')
 
 orderly2::orderly_description('Process model outputs')
 orderly2::orderly_artefact('Processed output', 'country_output.rds')
@@ -23,7 +22,6 @@ orderly2::orderly_dependency("process_inputs","latest(parameter:iso3c == this:is
 site_data <- readRDS('site_file.rds')
 vimc_input<- readRDS('vimc_input.rds')
 pop<- vimc_input$population_input_single_yr
-
 
 sites<- site_data$sites
 sites<- remove_zero_eirs(iso3c, sites, site_data$eir)
@@ -59,7 +57,7 @@ for (i in 1:nrow(sites)) {
     scenario<-dt$scenario[1]
     
     if(scenario!="no-vaccination") {
-      metadata<-orderly2::orderly_dependency("process_site", quote(latest(parameter:iso3c == this:iso3c &&
+      metadata<-orderly2::orderly_dependency("analyse_site", quote(latest(parameter:iso3c == this:iso3c &&
                                                                             parameter:description == this:description &&
                                                                             parameter:population == this:population &&
                                                                             parameter:scenario == this:scenario &&
@@ -68,77 +66,21 @@ for (i in 1:nrow(sites)) {
                                                                             parameter:ur == environment:ur &&
                                                                             parameter:parameter_draw == this:parameter_draw &&
                                                                             parameter:quick_run == this:quick_run)),
-                                             c('doses_per_year_${site_name}_${ur}.rds' = "doses_per_year.rds"))
+                                             c('plotting_input_${site_name}_${ur}.rds' = "plotting_input.rds"))
       
-      doses_site<- readRDS(metadata$files$here)
+      input<- readRDS(metadata$files$here)
+      doses_site<- input$doses_per_year
+      
       doses<- rbind(doses, doses_site, fill = T)
       
     }
 }
 
 # sum cases up to country level ------------------------------------------------
-dt<- copy(output)
-dt<- data.table(dt)
 
-dt[, `:=` (
-  cases = sum(cases),
-  deaths = sum(deaths),
-  dalys = sum(dalys)),
-by = c('age', 'year', 'scenario')]
+dt<- aggregate_outputs(output, pop)
+dt<- scale_cases(dt, site_data)
 
-
-# remove cohort size, because for sites with some unmodelled locations, sum of cohort size != national population
-dt<- dt |> 
-  select(-cohort_size)
-dt <- unique(dt, by = c('age', 'year', 'scenario'))
-pop<- pop |>
-  rename(age = age_from,
-         cohort_size = value) |>
-  select(year, age, cohort_size)
-dt<- merge(dt, pop, by =c('age', 'year'))
-
-
-# calculate rates --------------------------------------------------------------
-dt[, `:=` (
-  clinical = NULL,
-  mortality = NULL,
-  dalys_pp = NULL,
-  site_name = iso3c,
-  urban_rural = 'total'
-)]
-
-
-# # scale outputs based on cases from WMR from 2000-2020
-# # first sum cases by year (across all ages) in model output and compare
-pre_scale<- dt |>
-  group_by(year) |>
-  summarise(cases = sum(cases))
-
-#average site file cases across last three years
-site_file_cases<- data.table::data.table(site_data$cases_deaths[, c('year', 'wmr_cases')])
-site_file_cases<- site_file_cases[year >= 2018]
-average_value<- mean(site_file_cases$wmr_cases)
-
-# calculate ratio in comparison to year 2020 cases in output
-output_cases<- pre_scale |>
-  filter(year == 2020) |>
-  select(cases)
-
-
-ratio<- average_value/output_cases$cases
-
-# test this scaling with an extra column and review
-dt<- dt |>
-  mutate(pre_scaled_cases = cases)
-
-dt<- dt |>
-  mutate(cases = cases * ratio)
-
-dt<- dt|>
-  mutate(clinical= cases/cohort_size,
-         mortality = deaths/ cohort_size,
-         dalys_pp = dalys/ cohort_size) |>
-  select(-site_name, -urban_rural)
 
 if(scenario!="no-vaccination") {
   doses_per_year <- doses |>
