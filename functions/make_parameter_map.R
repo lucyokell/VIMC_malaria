@@ -1,7 +1,6 @@
-make_parameter_maps<- function(iso3cs,
-                              population,
-                              scenarios =  
-                                c(
+make_parameter_maps <- function(iso3cs,
+                                population,
+                                scenarios = c(
                                   'no-vaccination',
                                   'malaria-r3-default',
                                   'malaria-r3-r4-default',
@@ -10,68 +9,48 @@ make_parameter_maps<- function(iso3cs,
                                   'malaria-rts3-rts4-bluesky',
                                   'malaria-rts3-rts4-default'
                                 ),
-                              description,
-                              parameter_draw,
-                              quick_run,
-                              burnin,
-                              metadata){
+                                description,
+                                parameter_draw,
+                                quick_run,
+                                burnin,
+                                metadata) {
   
-  # could be cleaner but will do for now
-  
-  map<- data.table()
-  for (iso3c in iso3cs){
-    
-    sites<- data.table(readRDS(paste0('src/process_inputs/site_files/', iso3c, '.rds'))$sites)  # sites for country of interest
-    sites<- remove_zero_eirs(iso3c, sites)
-    
-    site_num<- data.table('iso3c' = iso3c, 'site_name' = sites$name_1, 'ur' = sites$urban_rural)  
-    
-    map<- rbind(site_num, map)
+  # Function to read sites for a given iso3c
+  get_sites <- function(iso3c) {
+    sites <- data.table(readRDS(paste0('src/process_inputs/site_files/', iso3c, '.rds'))$sites)
+    remove_zero_eirs(iso3c, sites)
   }
   
-  # expand grid out to include input parameters-
-  map<- map |>
-    mutate(population = population,
-           description = description,
-           parameter_draw = parameter_draw,
-           quick_run = quick_run,
-           burnin = burnin)
+  # Create a data.table of iso3c, site_name, and ur
+  map <- rbindlist(lapply(iso3cs, function(iso3c) {
+    sites <- get_sites(iso3c)
+    data.table('iso3c' = iso3c, 'site_name' = sites$name_1, 'ur' = sites$urban_rural)
+  }))
   
-
+  # Expand the grid to include input parameters
+  map[, c('population', 'description', 'parameter_draw', 'quick_run', 'burnin') := 
+        .(population, description, parameter_draw, quick_run, burnin)]
   
-  full_map<- data.table()
-  for (scen in scenarios){
-    subset<- map|>
-      mutate(scenario = scen)
-    
-    full_map<- rbind(subset, full_map)
-  }
+  # Create a data.table of iso3cs
+  country_map <- data.table('iso3c' = iso3cs)
   
+  # Expand the grid to include input parameters
+  country_map[, c('population', 'description', 'parameter_draw', 'quick_run', 'burnin') := 
+                .(population, description, parameter_draw, quick_run, burnin)]
   
-  country_map<- data.table('iso3c' = iso3cs)
+  # Create a full map data.table
+  full_map <- rbindlist(lapply(scenarios, function(scen) {
+    map[, scenario := scen]
+  }))
   
-  # expand grid out to include input parameters-
-  country_map<- country_map |>
-    mutate(population = population,
-           description = description,
-           parameter_draw = parameter_draw,
-           quick_run = quick_run,
-           burnin = burnin)
+  # Create a full country map data.table
+  full_country_map <- rbindlist(lapply(scenarios, function(scen) {
+    country_map[, scenario := scen]
+  }))
   
-  
-  full_country_map<- data.table()
-  for (scen in scenarios){
-    subset<- country_map|>
-      mutate(scenario = scen)
-    
-    full_country_map<- rbind(subset, full_country_map)
-  }
-  
+  # Convert site_name to ASCII
   Encoding(full_map$site_name) <- "UTF-8"
-  full_map$site_name<- iconv(full_map$site_name, from="UTF-8", to="ASCII//TRANSLIT")
+  full_map$site_name <- iconv(full_map$site_name, from="UTF-8", to="ASCII//TRANSLIT")
   
-  
-  return(list('site_map' = full_map, 'country_map'= full_country_map))
+  return(list('site_map' = full_map, 'country_map' = full_country_map))
 }
-
-

@@ -150,3 +150,5 @@ check_three_four_dose_order<- function(dt){
 }
 rerun<- check_bluesky_routine_order(dt)
 rerun2<- check_three_four_dose_order(dt)
+reruns<- rbind(rerun, rerun2)
+reruns<- unique(reruns)

@@ -38,9 +38,11 @@ dir<- getwd()
 # PARAMETERS TO CHANGE FOR REPORTS ---------------------------------------------
 maps<- make_parameter_maps(
   iso3cs =  iso3cs,                                                                       # Pick 10 countries to begin with
-  scenarios= c('malaria-r3-default', 'malaria-rts3-bluesky', 'malaria-rts3-default'),     # if you only want to run reports for certain scenarios. Default is all 7
+  #scenarios= c('malaria-r3-default', 'malaria-rts3-bluesky', 'malaria-rts3-default'),     # if you only want to run reports for certain scenarios. Default is all 7
   description = 'complete_run',                                                           # reason for model run (change this for every run if you do not want to overwrite outputs)
-  parameter_draw = 0,                                                                     # parameter draw to run (0 for central runs)
+  population = 100000,
+  parameter_draw = 0,
+  burnin = 15, # parameter draw to run (0 for central runs)
   quick_run = FALSE                                                                       # boolean, T or F. If T, makes age groups larger and runs model through 2035.
 )
 
