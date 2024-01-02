@@ -7,7 +7,6 @@
 # 3) processes country outputs
 # 4) generates diagnostics
 ################################################################################
-
 # packages  
 pkgs<- c('orderly2', 'site', 'data.table', 'dplyr')
 invisible(lapply(pkgs, library, character.only = TRUE))
@@ -18,7 +17,6 @@ source('workflow_functions.R')
 # obtain list of countries to run model for
 coverage<- read.csv('src/process_inputs/vimc_inputs/vaccine_coverage/coverage_202310gavi-1_malaria-r3-default.csv')
 iso3cs<- unique(coverage$country_code)
-
 dir<- getwd()
 
 # if you have not already, initialize the orderly repository
@@ -27,13 +25,13 @@ dir<- getwd()
 ################################################################################
 # 1 prepare and save inputs
 # unless inputs change, this only needs to be run once for all countries
-# for (iso3c in iso3cs){
-# 
-#   orderly2::orderly_run(
-#     'process_inputs',
-#     list(iso3c = iso3c),
-#     root = dir)
-# }
+for (iso3c in iso3cs){
+
+  orderly2::orderly_run(
+    'process_inputs',
+    list(iso3c = iso3c),
+    root = dir)
+}
 
 # PARAMETERS TO CHANGE FOR REPORTS ---------------------------------------------
 maps<- make_parameter_maps(
@@ -52,7 +50,6 @@ site_map<- generate_parameter_map_for_next_report(report_name = 'launch_models',
 
 site_map<- maps$site_map
 sites<- purrr::map(.x = c(1:nrow(site_map)), .f= ~ site_map[.x,])
-
 
 # country_map<- remove_duplicate_reports(report_name = 'process_country', parameter_map = maps$country_map, day= 20231130)
 # country_map<- generate_parameter_map_for_next_report(report_name = 'process_country', parameter_map = country_map)

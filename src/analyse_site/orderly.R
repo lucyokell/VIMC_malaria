@@ -1,11 +1,11 @@
 # analyse site  ----------------------------------------------------------------
-orderly2::orderly_parameters(iso3c = NULL, 
-                             site_name = NULL,
-                             ur = NULL,
-                             scenario = NULL,
-                             quick_run = NULL,
-                             parameter_draw = NULL,
-                             description =  NULL)
+orderly2::orderly_parameters(iso3c = 'NGA', 
+                             site_name = 'Lagos',
+                             ur = 'urban',
+                             scenario = 'malaria-rts3-rts4-default',
+                             quick_run = FALSE,
+                             parameter_draw = 0,
+                             description =  'runtime_fixes')
 
 
 orderly2::orderly_description('Analyze vaccine impact at the site level')
@@ -34,13 +34,16 @@ le <- vimc_input$le
 vimc_pop<- vimc_input$population_input_all_age
 pop_single_yr<- vimc_input$population_input_single_yr
 
+
+more_params<- pull_age_groups_time_horizon(quick_run = quick_run, coverage_dt = coverage_data, scenario = scenario)
+
 # site data
 site <- extract_site(site_file = site_data, site_name = site_name, ur = ur)
-more_params<- pull_age_groups_time_horizon(quick_run = quick_run)
 
 # specify vaccine coverage based on forecast  ----------------------------------
 site<- expand_intervention_coverage(site, terminal_year = more_params$term_yr)
 site<- update_coverage_values(site, coverage_data, scenario_name = scenario)
+
 
 # add in scenario variable which will be used to implement booster
 vaccine_plot_input<- copy(site)

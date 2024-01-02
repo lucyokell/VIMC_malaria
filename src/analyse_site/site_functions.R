@@ -36,7 +36,12 @@ extract_site <- function(site_file, site_name, ur){
 
 
 # parameterizing  --------------------------------------------------------------
-pull_age_groups_time_horizon<- function(quick_run){
+pull_age_groups_time_horizon<- function(quick_run, scenario, coverage_dt){
+  
+  # if bluesky or nonvaccination scenario, reduce time horizon to 2050 because
+  # vaccine coverage is constant
+  # if routine vaccination scenario, continue model run until 10 years after scaleup
+  
   
   year<- 365
   burnin<- 15
@@ -49,13 +54,26 @@ pull_age_groups_time_horizon<- function(quick_run){
     min_ages = c(0:5, 6,15,20) * year
     max_ages = c(1:6, 15,20,200) * year -1
     
-  } else{
+  } 
+  
+  else{
     
-    term_yr<- 2100
-    pop_val<- 100000
+    pop_val<- 50000
     
-    min_ages = c(seq(0, 19, by= 1), seq(20, 90, by= 10)) * year
-    max_ages = c(seq(1, 20, by= 1), seq(30, 100, by= 100)) * year -1
+    
+    if (scenario == 'no-vaccination' | scenario %like% 'bluesky'){
+      
+      term_yr<- 2050
+      
+    } else{
+      
+      scaleup<- find_scaleup_yr(coverage_dt, scen= scenario)
+      term_yr<- scaleup + 10
+    }
+    
+
+    min_ages = c(0:9, 10,12,14, 17,20,25,35,50)* year
+    max_ages = c(min_ages[2:length(min_ages)] -1, 200* year)
     
   }
   
@@ -157,6 +175,21 @@ update_coverage_values<- function(site, coverage_data, scenario_name){
   return(site)
 }
 
+
+
+find_scaleup_yr<- function(coverage_data, scen){
+  
+  intvns<- data.table(coverage_data)
+  intvns<- intvns[scenario == scen]
+  
+
+    scaleup<- min(intvns[coverage == 0.95, year])
+
+  
+  return(scaleup)
+  }
+    
+  
 
 #' expand intervention years out to terminal year of forecast using scene package
 #' @param   site             site data file
