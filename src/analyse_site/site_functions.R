@@ -59,17 +59,17 @@ pull_age_groups_time_horizon<- function(quick_run, scenario, coverage_dt){
   else{
     
     pop_val<- 50000
+    term_yr<- 2100
     
-    
-    if (scenario == 'no-vaccination' | scenario %like% 'bluesky'){
+    # if (scenario == 'no-vaccination' | scenario %like% 'bluesky'){
+    #   
+    #   term_yr<- 2050
+    #   
+    # } else{
       
-      term_yr<- 2050
-      
-    } else{
-      
-      scaleup<- find_scaleup_yr(coverage_dt, scen= scenario)
-      term_yr<- scaleup + 10
-    }
+      # scaleup<- find_scaleup_yr(coverage_dt, scen= scenario)
+      # term_yr<- scaleup + 10
+    # }
     
 
     min_ages = c(0:9, 10,12,14, 17,20,25,35,50)* year
@@ -200,7 +200,7 @@ expand_intervention_coverage<- function(site, terminal_year){
   # first set terminal year to terminal year of forecast
   group_var <- names(site$sites)
   
-  first_yr<- max(site$interventions$year)  +1              # first year in site file
+  first_yr<- max(site$interventions$year) + 1            # first year in site file
   itn_yr<- first_yr- 3                                   # last year to carry over for ITN usage and model input (3 year cycle)
   
   site$interventions <- site$interventions |> 
@@ -263,7 +263,36 @@ vimc_postprocess<- function(output, le, site_data, vimc_pop, pop_single_yr){
     select(-prop_n, -n, -yll_pp, -dalys_pp) |>
     rename(year = t)
   
-  # merge in inputs for expected remaining years of life (to calculate YLLs)
+  if (quick_run == TRUE){
+    
+    # fill rates out flatly 
+    output<- output |>
+      dplyr::group_by(age_lower) |>
+      tidyr::complete(year = c(2000:2100)) |>
+      dplyr::ungroup() |>
+      tidyr::fill(clinical, severe, mortality, yld_pp, .direction = 'down')
+  }
+  
+  
+  # # find the terminal year of this model run  ---------------------------
+  # terminal_yr<- max(dt$year)
+  # output<- data.table(output)
+  # 
+  # # fill out incidence rates (assuming a 3 year cyclical pattern)
+  # for (age in unique(age_lower)){
+  #   
+  #   for (yr in c(terminal_yr + 1:2100)){
+  #     
+  #     comparator<- dt |>
+  #       filter(age_lower == age, 
+  #              year == yr - 3)
+  #     
+  #     output[year == yr & age_lower == age, `:=` (new_rate = comparator$clinical)]
+  # 
+  #   }
+  # }
+  
+  # merge in inputs for expected remaining years of life (to calculate YLLs)  ------
   le<- expand_life_expectancy(le)
   
   # calculate ylls_pp + dalys per person
@@ -413,15 +442,20 @@ pull_plotting_data<- function(scenario){
   
   
   ### pull out prevalence
-  prev <- postie::get_prevalence(raw_output, time_divisor = 365, baseline_t = 1999,
+  prev <- postie::get_prevalence(raw_output, 
+                                 time_divisor = 365, 
+                                 baseline_t = 1999,
                                  age_divisor = 365) 
-  prev$n_2_10 <- raw_output |>
-    mutate(year = floor(timestep/365)) |>
-    group_by(year) |>
-    summarise(n_2_10 = mean(n_730_3649)) |>
-    filter(year<=100) |>
-    pull(n_2_10)
+
+  test<- raw_output |>
+  mutate(year = floor(timestep/365)) |>
+  group_by(year) |>
+  summarise(n_2_10 = mean(n_730_3649)) |>
+  filter(year<=100) 
+    
+  test<- test |> filter(year< max(test$year))
   
+  prev$prevalence_2_10 <- test$n_2_10
   
   saveRDS(prev, 'prevalence_per_year.rds')
   # save outputs for plotting
@@ -433,4 +467,47 @@ pull_plotting_data<- function(scenario){
   return(plotting_inputs)
 }
 
-
+pull_doses_output <- function(raw_output, processed_output) {
+  scenario <- raw_output$scenario[1]
+  raw_output$year <- floor(raw_output$timestep / 365) + 2000
+  
+  ## Pull out doses before 2040 and over all time
+  # N fully vaccinated children are the number receiving the last dose.
+  
+  if(grepl("rts4", scenario) | grepl("r4", scenario)) {  ## for the booster scenarios
+    
+    doses_per_year <-raw_output |>
+      dplyr::group_by(year) |>
+      dplyr::summarise(n_model=mean(n_365_729),    ## average number of people in the eligible age grp (?best way to do this)
+                       doses_model=sum(n_pev_epi_booster_1)) |>
+      mutate(rate_dosing = doses_model/n_model)
+    
+    ### Merge in VIMC pop in eligible age gp.
+    vimc_cohort <- processed_output |>
+      dplyr::filter(age==1) |>
+      dplyr::select(year, cohort_size)
+    
+    doses_per_year <- left_join(doses_per_year, vimc_cohort, by="year") |>
+      mutate(doses = rate_dosing * cohort_size)
+    
+  } else {   ## for the dose 3 without booster scenarios
+    
+    doses_per_year <-raw_output |>
+      dplyr::group_by(year) |>
+      dplyr::summarise(n_model=mean(n_0_364),    ## average number of people in the eligible age grp (?best way to do this)
+                       doses_model=sum(n_pev_epi_dose_3)) |>
+      mutate(rate_dosing = doses_model/n_model)
+    
+    ### Merge in VIMC pop in eligible age gp.
+    vimc_cohort <- processed_output |>
+      dplyr::filter(age==0) |>
+      dplyr::select(year, cohort_size)
+    
+    doses_per_year <- left_join(doses_per_year, vimc_cohort, by="year") |>
+      mutate(doses = rate_dosing * cohort_size)  %>%
+      select(-c(n_model, doses_model)) %>%
+      filter(year<=2100)
+    
+  }
+  return(doses_per_year)
+}

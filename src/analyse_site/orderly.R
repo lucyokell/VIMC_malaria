@@ -1,11 +1,11 @@
 # analyse site  ----------------------------------------------------------------
-orderly2::orderly_parameters(iso3c = 'NGA', 
-                             site_name = 'Lagos',
-                             ur = 'urban',
-                             scenario = 'malaria-rts3-rts4-default',
-                             quick_run = FALSE,
-                             parameter_draw = 0,
-                             description =  'runtime_fixes')
+orderly2::orderly_parameters(iso3c = NULL, 
+                             site_name = NULL,
+                             ur = NULL,
+                             scenario = NULL,
+                             quick_run = NULL,
+                             parameter_draw = NULL,
+                             description =  NULL)
 
 
 orderly2::orderly_description('Analyze vaccine impact at the site level')
@@ -123,7 +123,7 @@ output <- postie::get_rates(
   treatment_scaler = 0.517,
 )
 
-dt<- postprocess_vimc(output, le,  site_data, vimc_pop, pop_single_yr)
+dt<- vimc_postprocess(output, le,  site_data, vimc_pop, pop_single_yr)
 
 
 # final formatting  ------------------------------------------------------------
