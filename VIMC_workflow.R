@@ -25,29 +25,27 @@ dir<- getwd()
 ################################################################################
 # 1 prepare and save inputs
 # unless inputs change, this only needs to be run once for all countries
-for (iso3c in iso3cs){
-
-  orderly2::orderly_run(
-    'process_inputs',
-    list(iso3c = iso3c),
-    root = dir)
-}
+# for (iso3c in iso3cs){
+# 
+#   orderly2::orderly_run(
+#     'process_inputs',
+#     list(iso3c = iso3c),
+#     root = dir)
+# }
 
 # PARAMETERS TO CHANGE FOR REPORTS ---------------------------------------------
 maps<- make_parameter_maps(
-  iso3cs =  iso3cs,                                                                       # Pick 10 countries to begin with
-  #scenarios= c('malaria-r3-default', 'malaria-rts3-bluesky', 'malaria-rts3-default'),     # if you only want to run reports for certain scenarios. Default is all 7
-  description = 'complete_run',                                                           # reason for model run (change this for every run if you do not want to overwrite outputs)
+  iso3cs =  'SDN',                                                                       # Pick 10 countries to begin with
+  scenarios= c('malaria-r3-default'),     # if you only want to run reports for certain scenarios. Default is all 7
+  description = 'test_run_of_refactor',                                                    # reason for model run (change this for every run if you do not want to overwrite outputs)
   population = 100000,
   parameter_draw = 0,
-  burnin = 15, # parameter draw to run (0 for central runs)
-  quick_run = FALSE                                                                       # boolean, T or F. If T, makes age groups larger and runs model through 2035.
+  quick_run = TRUE                                                                       # boolean, T or F. If T, makes age groups larger and runs model through 2035.
 )
 
-
-site_map<- remove_duplicate_reports(report_name = 'process_site', parameter_map = site_map, day= 20231208)
-site_map<- generate_parameter_map_for_next_report(report_name = 'launch_models', parameter_map = maps$site_map, day= 20231208)
-
+# site_map<- remove_duplicate_reports(report_name = 'process_site', parameter_map = site_map, day= 20231208)
+# site_map<- generate_parameter_map_for_next_report(report_name = 'launch_models', parameter_map = maps$site_map, day= 20231208)
+# 
 site_map<- maps$site_map
 sites<- purrr::map(.x = c(1:nrow(site_map)), .f= ~ site_map[.x,])
 
@@ -108,7 +106,7 @@ for (pkg in pp){
 # run report for all sites locally ---------------------------------------------
 lapply(
   sites,
-  run_report,
+  run_site_report,
   report_name = 'analyse_site',
   path = dir
 )
@@ -116,7 +114,7 @@ lapply(
 # # or launch on cluster
 pp<- obj$lapply(
   sites,
-  run_report,
+  run_site_report,
   report_name = 'analyse_site',
   path = dir
 )

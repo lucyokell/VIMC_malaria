@@ -1,11 +1,11 @@
 # analyse site  ----------------------------------------------------------------
-orderly2::orderly_parameters(iso3c = NULL, 
-                             site_name = NULL,
-                             ur = NULL,
-                             scenario = NULL,
-                             quick_run = NULL,
-                             parameter_draw = NULL,
-                             description =  NULL)
+orderly2::orderly_parameters(iso3c = 'ETH', 
+                             site_name = 'Afar',
+                             ur = 'rural',
+                             scenario = 'malaria-rts3-rts4-default',
+                             quick_run =FALSE,
+                             parameter_draw = 0,
+                             description =  'runtime_test')
 
 
 orderly2::orderly_description('Analyze vaccine impact at the site level')
