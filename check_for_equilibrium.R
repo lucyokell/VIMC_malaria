@@ -13,56 +13,38 @@ library(wesanderson)
 
 
 path <-"N:/Lydia/VIMC_malaria/archive/process_site"
-
-
-
-# some functions
-get_country <- function(filename) {
-  test <- try(readRDS(paste0(path,"/",filename,"/processed_output.rds")), silent=TRUE)
-  
-  if (class(test) %in% 'try-error') {
-    next
-  } else {
-    site_output <- readRDS(paste0(path, "/", filename, "/processed_output.rds"))
-  }
-  
-  return(data.frame(scenario = site_output$scenario[1], 
-                    description = site_output$description[1],
-                    country = site_output$country[1],
-                    site_name = site_output$site_name[1],
-                    urban_rural = site_output$urban_rural[1]))
-}
-
-
-
-
-#### compile country data
-cres <-data.frame(filenames = filenames, date = date[which(date>20231130)],
-                  date_time = as.numeric(paste0(substring(filenames,1,8), substring(filenames, 10,13)))
-)
-cres <- cbind(cres, bind_rows(map(filenames, get_country)))
-
-dim(cres)
-cres <- cres |>
-  arrange(desc(date_time)) |>
-  dplyr::distinct(country, site_name, urban_rural, scenario, description, .keep_all = TRUE) |>
-  arrange(country, scenario)
-
-
+filenames <-list.files(path)
 
 get_site_output <- function(filename) {
+  message(filename)
   site_output <- readRDS(paste0(path,"/",filename,"/processed_output.rds"))
   return(site_output)
   
 }
 
-outputs<- rbindlist(lapply(filenames[1:500], get_site_output))
+check_if_output_exists<- function(filename){
+  
+  filepath<- paste0(path, '/', filename, '/processed_output.rds')
+  
+  if(file.exists(filepath)){
+    message('file exists')
+  }else{
+    
+    message('no file')
+    return(filename)
+  }
+}
 
-outputs<- data.table(outputs)
+filenames_to_avoid<- lapply(filenames, check_if_output_exists)
+
+outputs<- rbindlist(lapply(filenames[1:8000], get_site_output))
+orig<- copy(outputs)
+
+outputs<- data.table(orig)
 outputs<- outputs[urban_rural== 'urban']
 
 # plot incidence by site
-pdf('incidence_runtime_plots2.pdf')
+pdf('incidence_runtime_plots_urban_sites2.pdf', height= 12, width = 12)
 
 for (site in unique(outputs$site_name)){
   
@@ -75,11 +57,11 @@ for (site in unique(outputs$site_name)){
     facet_wrap(~age, scales= 'free') +
   labs(x= 'Time (in years)', 
          y= 'Incidence rate', 
-         title= paste0('Incidence rate over time: ', unique(output$site_name), ', urban'),
+         title= paste0('Incidence rate over time: ', unique(output$site_name)),
          color= 'Scenario', 
          fill= 'Scenario') +
-    scale_color_manual(values= wes_palette('Royal2' )) +
-    scale_fill_manual(values= wes_palette('Royal2'))  +
+    #scale_color_manual(values= wes_palette('Royal2' )) +
+    #scale_fill_manual(values= wes_palette('Royal2'))  +
     plotting_theme
   
   print(p)

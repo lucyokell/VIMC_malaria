@@ -1,5 +1,27 @@
 # site functions  --------------------------------------------------------------
 # utility ----------------------------------------------------------------------
+
+# check that the sites you seek to launch have non-zero EIRs
+remove_zero_eirs<- function(iso3c, sites){
+  eirs<- data.table(sites$eir)  # sites for country of interest
+  eirs<- eirs[spp == 'pf' & eir == 0]
+  remove<- eirs[, c('name_1', 'urban_rural')]
+  
+  if(nrow(remove) > 0){
+    for (i in 1:nrow(remove)){
+      
+      message(paste0('removing site ', i))
+      
+      sites<- sites[!(name_1== remove[i, name_1] & urban_rural == remove[i, urban_rural])]
+      
+    }
+    
+  } else{
+    message('No zero eir sites to remove')
+  }
+  return(sites)
+}
+
 #' Extract a single site-input from a country site file
 #' @param site_file  Country site file
 #' @param site_name  name of site to extract
@@ -48,8 +70,8 @@ pull_age_groups_time_horizon<- function(quick_run, scenario, coverage_dt){
   
   if(quick_run == T){
     
-    term_yr<- 2035
-    pop_val<- 10000
+    term_yr<- 2025
+    pop_val<- 5000
     
     min_ages = c(0:5, 6,15,20) * year
     max_ages = c(1:6, 15,20,200) * year -1
@@ -72,8 +94,12 @@ pull_age_groups_time_horizon<- function(quick_run, scenario, coverage_dt){
     # }
     
 
-    min_ages = c(0:9, 10,12,14, 17,20,25,35,50)* year
-    max_ages = c(min_ages[2:length(min_ages)] -1, 200* year)
+    # min_ages = c(0:9, 10,12,14, 17,20,25,35,50)* year
+    # max_ages = c(min_ages[2:length(min_ages)] -1, 200* year)
+    term_yr<- 2050
+    
+    min_ages = c(seq(0, 19, by= 1), seq(20, 90, by= 10)) * year
+    max_ages = c(seq(1, 20, by= 1), seq(30, 100, by= 10)) * year -1
     
   }
   
