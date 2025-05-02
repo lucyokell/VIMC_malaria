@@ -3,13 +3,17 @@
 .Rdata
 .httr-oauth
 .DS_Store
-.csv
-.xlsx
-.rds
+*.csv
+*.xlsx
+*.rds
+*.RDS
+*.pdf
 2022/
 raw_data/
 data/
 contexts/
+plots/
+diagnostics/
 ctxs/
 ctxs2/
 ctxs3/
@@ -19,11 +23,15 @@ pkgs/
 archive/
 .outpack/
 montagu/
+hipercow/
+outputs/
 draft/
 src/process_inputs/vimc_inputs/
 src/process_inputs/site_files/
 src/set_parameters/vimc_inputs/
 src/set_parameters/site_files/
+
+
 # ---VVV--- added by orderly ---VVV----------------
 # Don't manually edit content between these markers
 .outpack
